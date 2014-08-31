@@ -34,4 +34,19 @@ That should help a lot with the performance. But if you are measuring error rate
 As we already mentioned decryption library can throw exception from time to time. But it's not the end of the story. Internal implementation of that library is based on global shared mutable state, and each exception signalize that the state is broken.  
 To decrypt message we have to compose three function calls (i.e. C(B(A(encrypted_message)))). Exception can be thrown by each of that functions, and if that happens it invalidates whole chain of calls (so you need to start with A function again). And because of that global shared mutable state every exception affects all the clients - in our case all the workers. To overcome that problem we need to be sure that once the exception happens we will be able to discard all the broken results and retry failed computations.  
 We will implement:
-* in progress :)
+* supervision strategy, so supervisor will be able to restart all workers in case of any error
+* retrying all broken computations
+
+#### Terminating long running tasks
+To use decryption library we have to do few API calls chained together, i.e. C(B(A(encrypted_message))). Each of that functions is computationally expensive. It could be beneficial to be able to stop the actor at any point of computations, because if we already know that the result will be incorrect we have no interest in continuing.  
+We can obtain the desired result by using simple pattern: http://letitcrash.com/post/37854845601/little-pattern-message-based-loop. But be aware - additional messages in the mailbox can break our supervision strategy (if we are just restarting actors mailboxes are not cleared). Luckily fixing this will be simple.  
+We will implement:
+* pattern which will allow us stopping computations in the middle of the work
+* minor tweaks for supervision strategy
+
+#### Clustering
+Because decrypting passwords is computationally expensive only so much work can be done on the single machine. But each team has more than one laptop and can use that to its advantage. We can build Akka cluster which will distribute work between many nodes. For the central server it will be visible as a single machine.  
+There is no single valid design which would suit our needs, but we will go with one Cluster Singleton actor to coordinate work of our machines. It will ensure that one supervisor was created on every machine and will be responsible for login into central server (we need common identity for our cluster). Then all supervisors can communicate with central server directly (using obtained Id) or through Cluster Singleton actor.  
+We will implement:
+* Cluster Singleton actor which will spawn all the workers and login to the central server
+* changes to messages routing (varies depending on chosen strategy)
