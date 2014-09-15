@@ -41,7 +41,7 @@ We will implement:
 To use decryption library we have to do few API calls chained together, i.e. C(B(A(encrypted_message))). Each of those functions is computationally expensive. It could be beneficial to be able to stop the actor at any point of computations, because if we already know that the result will be incorrect we have no interest in continuing.  
 We can obtain the desired result by using simple pattern: http://letitcrash.com/post/37854845601/little-pattern-message-based-loop. But be aware - additional messages in the mailbox can break our supervision strategy (if we are just restarting actors mailboxes are not cleared). Luckily fixing this will be simple.  
 We will implement:
-* pattern which will allow us stopping computations in the middle of the work
+* pattern which will allow us to stop computations in the middle of the work
 * minor tweaks for supervision strategy
 
 #### Clustering
