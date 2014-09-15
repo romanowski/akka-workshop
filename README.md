@@ -10,7 +10,7 @@ Whole workshop is divided into few self-sufficient sections. We will start with 
 Generally you should follow all sections in a given order although two last ones are interchangeable.
 
 #### Akka remoting
-During this steep we will implement complete communication with remote server.
+During this step we will implement complete communication with remote server.
 We login to the central server and fetch encrypted password from it. Then we decrypt that password using provided decryption library and send it back to the central server. For now we skip all optimizations and error handling (just catch potential exceptions to not crash miserably) and focus on proper message passing and basic work-flow. API for communication (messages signatures) will be provided.  
 We will implement:
 * Login to the remote server (we will obtain unique Id to sign all our requests)
@@ -23,22 +23,22 @@ We will implement:
 This should give us working client library capable of decrypting passwords in cooperation with server. But our library is not very efficient and it's error prone as well. Rate of incorrectly encrypted (or not encrypted at all) passwords is probably quite high. Soon we will work on improving that.
 
 #### Work parallelization
-Modern machines usually have more then one core, but our application process data using just one thread. Such a waste! We want to parallelize our work by splitting it between multiple worker actors. We cannot split singe password decryption, but we can ask central server for multiple encrypted passwords and process each in a separate thread/actor. Let's do it!  
+Modern machines usually have more than one core, but our application process data using just one thread. Such a waste! We want to parallelize our work by splitting it between multiple worker actors. We cannot split singe password decryption, but we can ask central server for multiple encrypted passwords and process each in a separate thread/actor. Let's do it!  
 We will implement:
 * supervisor actor responsible for spawning multiple workers, dispatching work, and communication with central server
 * multiple worker actors responsible for password decryption
 
-That should help a lot with the performance. But if you are measuring error rates (do you?) from the server responses you will notice that they jumped up. This is caused by the buggy decryption library, problem which we will try to overcome in the next steep.
+That should help a lot with the performance. But if you are measuring error rates (do you?) from the server responses you will notice that they jumped up. This is caused by the buggy decryption library, problem which we will try to overcome in the next step.
 
 #### Error handling, supervision
 As we already mentioned decryption library can throw exception from time to time. But it's not the end of the story. Internal implementation of that library is based on global shared mutable state, and each exception signalize that the state is broken.  
-To decrypt message we have to compose three function calls (i.e. C(B(A(encrypted_message)))). Exception can be thrown by each of that functions, and if that happens it invalidates whole chain of calls (so you need to start with A function again). And because of that global shared mutable state every exception affects all the clients - in our case all the workers. To overcome that problem we need to be sure that once the exception happens we will be able to discard all the broken results and retry failed computations.  
+To decrypt message we have to compose three function calls (i.e. C(B(A(encrypted_message)))). Exception can be thrown by each of those functions, and if that happens it invalidates whole chain of calls (so you need to start with A function again). And because of that global shared mutable state every exception affects all the clients - in our case all the workers. To overcome that problem we need to be sure that once the exception happens we will be able to discard all the broken results and retry failed computations.  
 We will implement:
 * supervision strategy, so supervisor will be able to restart all workers in case of any error
 * retrying all broken computations
 
 #### Terminating long running tasks
-To use decryption library we have to do few API calls chained together, i.e. C(B(A(encrypted_message))). Each of that functions is computationally expensive. It could be beneficial to be able to stop the actor at any point of computations, because if we already know that the result will be incorrect we have no interest in continuing.  
+To use decryption library we have to do few API calls chained together, i.e. C(B(A(encrypted_message))). Each of those functions is computationally expensive. It could be beneficial to be able to stop the actor at any point of computations, because if we already know that the result will be incorrect we have no interest in continuing.  
 We can obtain the desired result by using simple pattern: http://letitcrash.com/post/37854845601/little-pattern-message-based-loop. But be aware - additional messages in the mailbox can break our supervision strategy (if we are just restarting actors mailboxes are not cleared). Luckily fixing this will be simple.  
 We will implement:
 * pattern which will allow us stopping computations in the middle of the work
