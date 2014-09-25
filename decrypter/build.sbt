@@ -1,4 +1,4 @@
-name := """akka-workshop"""
+name := """akka-workshop-decrypter"""
 
 version := "1.0"
 

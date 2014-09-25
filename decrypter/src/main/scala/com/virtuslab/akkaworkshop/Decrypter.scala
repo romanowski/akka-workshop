@@ -7,10 +7,8 @@ import org.apache.commons.codec.binary.Base64
 import scala.util.Random
 
 sealed trait DecryptionState
-case class PasswordEncrypted(password: String) extends DecryptionState
 case class PasswordPrepared(password: String) extends DecryptionState
 case class PasswordDecoded(password: String) extends DecryptionState
-case class PasswordDecrypted(password: String) extends DecryptionState
 
 object Decrypter {
   private val maxClientsCount = 4
@@ -97,9 +95,9 @@ object Decrypter {
 class Decrypter {
   val id = Decrypter.getNewId()
 
-  def prepare(state: PasswordEncrypted): PasswordPrepared = PasswordPrepared(Decrypter.decrypt(id, state.password))
+  def prepare(password: String): PasswordPrepared = PasswordPrepared(Decrypter.decrypt(id, password))
 
   def decode(state: PasswordPrepared): PasswordDecoded = PasswordDecoded(Decrypter.decrypt(id, state.password))
 
-  def decrypt(state: PasswordDecoded): PasswordDecrypted = PasswordDecrypted(Decrypter.decrypt(id, state.password))
+  def decrypt(state: PasswordDecoded): String = Decrypter.decrypt(id, state.password)
 }
