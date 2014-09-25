@@ -7,33 +7,41 @@ import scala.util.Random
 import org.apache.commons.codec.binary.Base64
 
 object PasswordsDistributor {
+  def props = Props[PasswordsDistributor]
+
   type Token = String
+
+  sealed trait PDMessageRequest
+  case class Register(name: String) extends PDMessageResponse
+  case class SendMeEncryptedPassword(token: Token) extends PDMessageResponse
+  case class ValidateDecodedPassword(token: Token,
+                                     encryptedPassword: String,
+                                     decryptedPassword: String) extends PDMessageResponse
+
+  sealed trait PDMessageResponse
+  case class Registered(token: Token)
+  case class EncryptedPassword(encryptedPassword: String) extends PDMessageResponse
+  case class PasswordCorrect(decryptedPassword: String) extends PDMessageResponse
+  case class PasswordIncorrect(decryptedPassword: String) extends PDMessageResponse
+
+  sealed trait PDMessageInternal
+  case object SendMeStatistics extends PDMessageInternal
+  case class Statistics(clients: Seq[Client])
+
 }
 
-import PasswordsDistributor._
-
-sealed trait PDMessageRequest
-case class Register(name: String) extends PDMessageResponse
-case class SendMeEncryptedPassword(token: Token) extends PDMessageResponse
-case class ValidateDecodedPassword(token: Token,
-                                   encryptedPassword: String,
-                                   decryptedPassword: String) extends PDMessageResponse
-
-sealed trait PDMessageResponse
-case class Registered(token: Token)
-case class EncryptedPassword(encryptedPassword: String) extends PDMessageResponse
-case class PasswordCorrect(decryptedPassword: String) extends PDMessageResponse
-case class PasswordIncorrect(decryptedPassword: String) extends PDMessageResponse
-
-sealed trait PDMessageInternal
-case object SendMeStatistics extends PDMessageInternal
-case class Statistics(clients: Seq[Client])
-
-class Client(name: String) {
-  var lastActionTimestamp = 0L
+class Client(val name: String) {
+  val registrationTimestamp = timestamp
+  var lastActionTimestamp = timestamp
   var passwordsRequested = 0
   var passwordsDecrypted = 0
   var passwordsInvalid = 0
+
+  def passwordsPerMinute = (passwordsDecrypted.toFloat / ((timestamp - registrationTimestamp).toFloat / 60)).toInt
+
+  def precentOfCorrect = ((100.0 * passwordsDecrypted) / passwordsRequested).toInt
+
+  def timeFromLastAction = timestamp - lastActionTimestamp
 
   def timestamp = System.currentTimeMillis / 1000
 
@@ -45,6 +53,8 @@ class Client(name: String) {
 }
 
 class PasswordsDistributor extends Actor {
+  import PasswordsDistributor._
+
   val log = Logging(context.system, this)
   var clients = scala.collection.immutable.HashMap.empty[Token, Client]
 

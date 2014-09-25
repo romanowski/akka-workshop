@@ -1,0 +1,27 @@
+@import com.virtuslab.akkaworkshop._
+@import com.virtuslab.akkaworkshop.PasswordsDistributor._
+
+@(clients: Seq[Client])
+
+[
+  @for(c <- clients) {
+    {
+      "name": "@c.name",
+      "timeFromLastAction": "@c.timeFromLastAction seconds ago",
+      "passwordsRequested": "@c.passwordsRequested",
+      "passwordsDecrypted": "@c.passwordsDecrypted",
+      "passwordsInvalid": "@c.passwordsInvalid",
+      "precentOfCorrect": "@c.precentOfCorrect",
+      "passwordsPerMinute": "@c.passwordsPerMinute"
+    },
+  }
+    {
+      "name": "",
+      "timeFromLastAction": "",
+      "passwordsRequested": "",
+      "passwordsDecrypted": "",
+      "passwordsInvalid": "",
+      "precentOfCorrect": "",
+      "passwordsPerMinute": ""
+    }
+]

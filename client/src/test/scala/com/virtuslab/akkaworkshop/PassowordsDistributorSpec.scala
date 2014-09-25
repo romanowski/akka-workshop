@@ -21,8 +21,9 @@ class PassowordsDistributorSpec(_system: ActorSystem)
   }
 
   "An PasswordsDistributor" should "be able to provide encoded passwords for register clients and validate decoded ones" in {
-    val distributor = TestActorRef(Props[PasswordsDistributor])
+    import PasswordsDistributor._
 
+    val distributor = TestActorRef(PasswordsDistributor.props)
     distributor ! Register("kuki")
     val token = expectMsgType[Registered].token
     token should not be empty

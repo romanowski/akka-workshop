@@ -1,7 +1,67 @@
-@(message: String)
+<!DOCTYPE html>
 
-@main("Welcome to Play") {
+<html>
+    <head>
+        <title>Leaderboard</title>
+        <link rel="stylesheet" media="all" href="https://s3.amazonaws.com/dynatable-docs-assets/css/bootstrap-2.3.2.min.css" />
+        <link rel="stylesheet" media="all" href="https://s3.amazonaws.com/dynatable-docs-assets/css/application.css" />
+        <link href='//fonts.googleapis.com/css?family=Nunito:300' rel='stylesheet' type='text/css'>
+        <link href="//fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" media="all" href="https://s3.amazonaws.com/dynatable-docs-assets/css/dynatable-docs.css" />
+        <script type='text/javascript' src='https://s3.amazonaws.com/dynatable-docs-assets/js/jquery-1.9.1.min.js'></script>
 
-    @play20.welcome(message)
+        <!-- resources for project demos //-->
+        <link rel="stylesheet" media="all" href="https://s3.amazonaws.com/dynatable-docs-assets/css/jquery.dynatable.css" />
 
-}
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <script type='text/javascript' src='https://s3.amazonaws.com/dynatable-docs-assets/js/jquery.dynatable.js'></script>
+    </head>
+    <body>
+      <div class="dynatable-demo">
+        <table id="leaderboard-table" class="table table-bordered">
+          <thead>
+            <th>Name</th>
+            <th>Time From Last Action</th>
+            <th>Passwords Requested</th>
+            <th>Passwords Decrypted</th>
+            <th>Passwords Invalid</th>
+            <th>PrecentOf Correct</th>
+            <th>Passwords Per Minute</th>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      <div id="jsonModel" style="display: none;"></div>
+
+      <script type='text/javascript'>
+
+        var $dynatable = {}
+        $('#jsonModel').load("leaderboard.json", function(data) {
+          JSON.parse(data);
+          $dynatable = $('#leaderboard-table').dynatable({
+            dataset: {
+              records: JSON.parse(data)
+            },
+            features: {
+              paginate: false,
+              search: false,
+              recordCount: false,
+              perPageSelect: false
+            }
+          }).data('dynatable');
+        });
+
+        var refresher = setInterval(function(){
+          $('#jsonModel').load("leaderboard.json", function(data) {
+            $dynatable.settings.dataset.originalRecords = JSON.parse(data);
+            $dynatable.process();
+          });
+        }, 1000);
+        setTimeout(function() {
+          clearInterval(refresher);
+        }, 1800000);
+
+      </script>
+    </body>
+</html>
