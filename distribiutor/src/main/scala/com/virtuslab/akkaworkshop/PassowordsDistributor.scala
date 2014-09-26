@@ -12,20 +12,29 @@ object PasswordsDistributor {
   type Token = String
 
   sealed trait PDMessageRequest
+
   case class Register(name: String) extends PDMessageResponse
+
   case class SendMeEncryptedPassword(token: Token) extends PDMessageResponse
+
   case class ValidateDecodedPassword(token: Token,
                                      encryptedPassword: String,
                                      decryptedPassword: String) extends PDMessageResponse
 
   sealed trait PDMessageResponse
+
   case class Registered(token: Token)
+
   case class EncryptedPassword(encryptedPassword: String) extends PDMessageResponse
+
   case class PasswordCorrect(decryptedPassword: String) extends PDMessageResponse
+
   case class PasswordIncorrect(decryptedPassword: String) extends PDMessageResponse
 
   sealed trait PDMessageInternal
+
   case object SendMeStatistics extends PDMessageInternal
+
   case class Statistics(clients: Seq[Client])
 
 }
@@ -53,6 +62,7 @@ class Client(val name: String) {
 }
 
 class PasswordsDistributor extends Actor {
+
   import PasswordsDistributor._
 
   val log = Logging(context.system, this)
@@ -98,7 +108,9 @@ class PasswordsDistributor extends Actor {
       }
 
     case SendMeStatistics =>
-      clients = clients filter { case (t, c) => c.isActive }
+      clients = clients filter { case (t, c) => c.isActive}
       sender ! Statistics(clients.values.toSeq)
+
+    case any => sender ! ("Unknow message" -> any)
   }
 }
