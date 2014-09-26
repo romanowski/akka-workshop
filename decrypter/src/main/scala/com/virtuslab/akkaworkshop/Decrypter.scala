@@ -7,7 +7,9 @@ import org.apache.commons.codec.binary.Base64
 import scala.util.Random
 
 sealed trait DecryptionState
+
 case class PasswordPrepared(password: String) extends DecryptionState
+
 case class PasswordDecoded(password: String) extends DecryptionState
 
 object Decrypter {
@@ -15,7 +17,6 @@ object Decrypter {
 
   private var clientsCount = 0
 
-  private val isInitialized = lockInstance()
 
   private var clients = scala.collection.immutable.ListSet[Int]()
 
@@ -30,29 +31,6 @@ object Decrypter {
     }
   }
 
-  private def lockInstance(): Boolean = {
-    try {
-      val tempDir = System.getProperty("java.io.tmpdir")
-      val file = new File(s"${tempDir}/akka_workshop")
-      val randomAccessFile = new RandomAccessFile(file, "rw")
-      val fileLock = randomAccessFile.getChannel().tryLock()
-
-      if (fileLock != null) {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-          override def run() {
-            try {
-              fileLock.release()
-              randomAccessFile.close()
-              file.delete()
-            } catch { case _: Throwable => }
-          }
-        })
-        return true
-        println("true")
-      }
-    } catch { case _: Throwable => }
-    return false
-  }
 
   private def decrypt(id: Int, password: String, probabilityOfFailure: Double = 0.05) = {
     def isClientAccepted() = this synchronized {
@@ -66,13 +44,11 @@ object Decrypter {
     }
 
     try {
-      if (!isInitialized) {
-        throw new IllegalStateException("Initialization failed. Only single jvm instance is supported.")
-      }
-
       Thread.sleep(1000)
 
-      while (!isClientAccepted()) { Thread.sleep(100) }
+      while (!isClientAccepted()) {
+        Thread.sleep(100)
+      }
 
       this synchronized {
         val shouldFail = Random.nextInt.abs < probabilityOfFailure * Int.MaxValue.toDouble
@@ -80,13 +56,16 @@ object Decrypter {
           clients = clients.empty
           throw new IllegalStateException("Invalid internal state!")
         }
-        if (clients.contains(id)) new String(Base64.decodeBase64(password.getBytes)) else "-fj;^)%:-((oh@6#gH%dF6Ljk6%5"
+        if (clients.contains(id))
+          new String(Base64.decodeBase64(password.getBytes))
+        else
+          "-fj;^)%:-((oh@6#gH%dF6Ljk6%5"
       }
 
     }
     finally {
       this synchronized {
-        clientsCount -=1
+        clientsCount -= 1
       }
     }
   }
