@@ -1,13 +1,18 @@
 package client
 
 import akka.actor._
+import akka.routing.RoundRobinPool
 import com.virtuslab.akkaworkshop.PasswordsDistributor._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 class RequesterActor extends Actor {
 
-  val worker = context.actorOf(Props[WorkerActor])
+  val poolStrategy = AllForOneStrategy(){
+    SupervisorStrategy.defaultDecider
+  }
+
+  val worker = context.actorOf(RoundRobinPool( nrOfInstances = 4, supervisorStrategy = poolStrategy).props(Props[WorkerActor]))
 
   private var token: String = _
   private var remoteActor: ActorSelection = _

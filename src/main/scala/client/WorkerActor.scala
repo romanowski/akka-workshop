@@ -1,6 +1,6 @@
 package client
 
-import akka.actor.{OneForOneStrategy, SupervisorStrategy, Actor, ActorRef}
+import akka.actor._
 import com.virtuslab.akkaworkshop._
 
 
@@ -24,14 +24,52 @@ class WorkerActor extends Actor{
     }
   }
 
-  override def receive: Receive = justRetry {
+
+  override def supervisorStrategy: SupervisorStrategy = AllForOneStrategy()(SupervisorStrategy.defaultDecider)
+
+  override def receive: Receive = fineDecrypter
+
+  def fineDecrypter =  justRetry {
     case req: WorkerRequest =>
         self ! (req, decrypter.prepare(req.originalPassword))
 
     case (req: WorkerRequest, prepared: PasswordPrepared) =>
-      self ! (req, decrypter.decode(prepared))
+      self ! (req, prepared, decrypter.decode(prepared))
 
-    case (req: WorkerRequest, decoded: PasswordDecoded) =>
-      req.from ! WorkerResult(req.originalPassword, decrypter.decrypt(decoded))
+    case (req: WorkerRequest, prepared, decoded: PasswordDecoded) =>
+      self ! (req, prepared, decoded, decrypter.decrypt(decoded))
+
+    case (req: WorkerRequest, _, _, decrypted: String) =>
+      req.from ! WorkerResult(req.originalPassword, decrypted)
+
+    case other =>
+      println(s"Missed in normal: $other")
+  }
+
+  def brokenDecrypter =  justRetry {
+    case req: WorkerRequest =>
+      context.become(fineDecrypter)
+      self ! req
+
+    case (req: WorkerRequest, _) =>
+      context.become(fineDecrypter)
+      self ! req
+
+    case (req: WorkerRequest, prepared, _) =>
+      context.become(fineDecrypter)
+      self ! (req, prepared)
+
+    case (req: WorkerRequest, prepared, decoded, _) =>
+      context.become(fineDecrypter)
+      req.from ! (req, prepared, decoded)
+
+    case other =>
+      println(s"Missed in new: $other")
+  }
+
+  @throws[Exception](classOf[Exception])
+  override def postRestart(reason: Throwable): Unit = {
+    super.postRestart(reason)
+    context.become(brokenDecrypter)
   }
 }
