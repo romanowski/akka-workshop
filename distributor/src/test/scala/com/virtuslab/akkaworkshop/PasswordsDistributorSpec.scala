@@ -1,27 +1,29 @@
 package com.virtuslab.akkaworkshop
 
-import org.scalatest.{ BeforeAndAfterAll, FlatSpecLike, Matchers }
-import akka.actor.{ Actor, Props, ActorSystem }
-import akka.testkit.{ ImplicitSender, TestKit, TestActorRef }
-import scala.concurrent.duration._
+import akka.actor.ActorSystem
+import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import org.apache.commons.codec.binary.Base64
+import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
 
-class PassowordsDistributorSpec(_system: ActorSystem)
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+class PasswordsDistributorSpec(_system: ActorSystem)
   extends TestKit(_system)
   with ImplicitSender
   with Matchers
   with FlatSpecLike
   with BeforeAndAfterAll {
 
-  def this() = this(ActorSystem("PassowordsDistributorSpec"))
+  def this() = this(ActorSystem("PasswordsDistributorSpec"))
 
-  override def afterAll: Unit = {
-    system.shutdown()
-    system.awaitTermination(10.seconds)
+  override def afterAll(): Unit = {
+    val termination = system.terminate()
+    Await.result(termination, 10.seconds)
   }
 
   "An PasswordsDistributor" should "be able to provide encoded passwords for register clients and validate decoded ones" in {
-    import PasswordsDistributor._
+    import com.virtuslab.akkaworkshop.PasswordsDistributor._
 
     val distributor = TestActorRef(PasswordsDistributor.props)
     distributor ! Register("kuki")

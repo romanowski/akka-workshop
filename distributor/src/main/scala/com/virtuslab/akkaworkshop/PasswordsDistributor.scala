@@ -111,6 +111,6 @@ class PasswordsDistributor extends Actor {
       clients = clients filter { case (t, c) => c.isActive}
       sender ! Statistics(clients.values.toSeq)
 
-    case any => sender ! ("Unknow message" -> any)
+    case any => sender ! ("Unknown message" -> any)
   }
 }

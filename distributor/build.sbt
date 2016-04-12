@@ -1,4 +1,4 @@
-name := "akka-workshop-decrypter"
+name := "akka-workshop-distributor"
 
 organization := "com.virtuslab"
 
@@ -9,8 +9,10 @@ version := "1.0.1"
 scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "2.2.6" % "test",
-  "commons-codec" % "commons-codec" % "1.9"
+  "commons-codec" % "commons-codec" % "1.9",
+  "com.typesafe.akka" %% "akka-actor" % "2.4.3",
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.3",
+  "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 )
 
 //  realm=Artifactory Realm
