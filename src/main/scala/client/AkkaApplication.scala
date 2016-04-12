@@ -1,31 +1,46 @@
 package client
 
-import akka.actor.{Actor, ActorSystem, Props}
-import com.virtuslab.akkaworkshop.Decrypter
+import akka.actor._
 import com.virtuslab.akkaworkshop.PasswordsDistributor._
-import scala.util.Try
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 class RequesterActor extends Actor {
 
-  val decrypter = new Decrypter
+  val worker = context.actorOf(Props[WorkerActor])
 
-  private def decryptPassword(password: String): Try[String] = Try {
-    val preapared = decrypter.prepare(password)
-    val decoded = decrypter.decode(preapared)
-    val decrypted = decrypter.decrypt(decoded)
-    decrypted
-  }
+  private var token: String = _
+  private var remoteActor: ActorSelection = _
+
+  private val initialRequestCount = 5
+
+  def requestPassword() = sender ! SendMeEncryptedPassword(token)
 
   // receive with messages that can be sent by the server
   override def receive: Receive = {
 
-    case Registered(token) => ???
+    case remote: ActorSelection =>
+      remoteActor = remote
+      remote ! Register("kromanowski")
 
-    case EncryptedPassword(encryptedPassword) => ???
+    case Registered(newToken) =>
+      token = newToken
+      (1 to initialRequestCount).foreach(_ => requestPassword())
 
-    case PasswordCorrect(decryptedPassword) => ???
+    case EncryptedPassword(encryptedPassword) =>
+      worker ! WorkerRequest(self, encryptedPassword)
 
-    case PasswordIncorrect(decryptedPassword) => ???
+    case WorkerResult(original, decrypted) =>
+      remoteActor ! ValidateDecodedPassword(token, original, decrypted)
+
+    case PasswordCorrect(decryptedPassword) =>
+      println("Success!")
+      requestPassword()
+
+    case PasswordIncorrect(decryptedPassword) =>
+      println("Failure!")
+
+      requestPassword()
   }
 
 }
@@ -42,7 +57,6 @@ object RequesterActor {
                               decryptedPassword : String) =
     ValidateDecodedPassword(token, encryptedPassword, decryptedPassword)
 
-  def sendPasswordMessage(token: Token) = SendMeEncryptedPassword(token)
 
 
 }
@@ -51,6 +65,12 @@ object AkkaApplication extends App {
 
   val system = ActorSystem("RequesterSystem")
 
-  val requesterActor = system.actorOf(RequesterActor.props, name = "requester")
+  val requesterActor = system.actorOf(Props[RequesterActor])
+
+  val remoteActor = system.actorSelection("akka.tcp://application@localhost:9552/user/PasswordsDistributor")
+
+  requesterActor ! remoteActor
+
+  Await.result(system.whenTerminated, Duration.Inf)
 
 }
