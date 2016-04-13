@@ -1,0 +1,11 @@
+.lefty {
+		tmargin-left: 36%
+		text-align: left;
+}
+
+.ts-icon {
+        background: none !important;
+        border: none !important;
+        margin: 0px !important;
+        box-shadow: 0 0 0px !important;
+}

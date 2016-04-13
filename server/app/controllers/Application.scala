@@ -22,7 +22,7 @@ object Application extends Controller {
 
   def leaderboard = Action {
     import PasswordsDistributor._
-    val distributor = Akka.system.actorSelection("akka.tcp://application@headquarters:9552/user/PasswordsDistributor")
+    val distributor = Akka.system.actorSelection("akka.tcp://application@localhost:9552/user/PasswordsDistributor")
     val statistics = Await.result(distributor ? SendMeStatistics, timeout.duration).asInstanceOf[Statistics]
     Ok(views.html.leaderboard(statistics.clients))
   }
